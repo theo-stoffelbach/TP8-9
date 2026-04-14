@@ -1,5 +1,21 @@
+import requests
+from django.conf import settings
 from rest_framework import serializers
 from .models import Order, OrderLine
+
+
+def fetch_product(product_id):
+    """Récupère un produit depuis le catalog-service."""
+    catalog_url = getattr(settings, 'CATALOG_SERVICE_URL', 'http://localhost:8001')
+    try:
+        response = requests.get(f"{catalog_url}/api/products/{product_id}/", timeout=5)
+        response.raise_for_status()
+        return response.json()
+    except requests.RequestException as e:
+        raise serializers.ValidationError(
+            f"Impossible de récupérer le produit {product_id} depuis le catalog-service : {e}"
+        )
+
 
 class OrderLineSerializer(serializers.ModelSerializer):
     unit_price = serializers.CharField(read_only=True)
@@ -15,6 +31,7 @@ class OrderLineSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("La quantité doit être supérieure à 0.")
         return value
 
+
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderLineSerializer(many=True)
     total_amount = serializers.CharField(read_only=True)
@@ -29,16 +46,14 @@ class OrderSerializer(serializers.ModelSerializer):
         order = Order.objects.create(**validated_data)
         total = 0
 
-        mock_prices = {1: 129.90, 3: 39.90}
-        mock_names = {1: "Nike Air Zoom", 3: "Puma Rider"}
-
         for item in items_data:
             p_id = item['product_id']
-            price = mock_prices.get(p_id, 0.0)
-            name = mock_names.get(p_id, "Unknown Product")
-
             qty = item['quantity']
-            line_total = float(price) * qty
+
+            product = fetch_product(p_id)
+            price = float(product['price'])
+            name = product['name']
+            line_total = price * qty
 
             OrderLine.objects.create(
                 order=order,
@@ -46,7 +61,7 @@ class OrderSerializer(serializers.ModelSerializer):
                 product_name=name,
                 unit_price=price,
                 quantity=qty,
-                line_total=line_total
+                line_total=line_total,
             )
             total += line_total
 
