@@ -1,0 +1,30 @@
+services:
+  order_db_container:
+    image: postgres:16
+    container_name: order_db
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - order_postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5434:5432"
+
+  order_web:
+    build: .
+    container_name: order_service
+    restart: always
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+    ports:
+      - "8002:8000"
+    depends_on:
+      - order_db_container
+
+volumes:
+  order_postgres_data:
