@@ -20,6 +20,7 @@ services:
   catalog_web:
     build: ./catalog-service
     container_name: catalog_service
+    hostname: catalog-web
     restart: always
     ports:
       - "8001:8001"
@@ -53,7 +54,9 @@ services:
   customers_web:
     build: ./customers-sercice
     container_name: customers_service
+    hostname: customers-web
     restart: always
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
     ports:
       - "8000:8000"
     environment:
@@ -64,7 +67,7 @@ services:
       DB_PORT: 5432
       DJANGO_SECRET_KEY: change_me_in_dev
       DJANGO_DEBUG: "True"
-      ALLOWED_HOSTS: "localhost,127.0.0.1,customers_web,customers_web:8000"
+      ALLOWED_HOSTS: "localhost,127.0.0.1,customers-web"
     depends_on:
       customers_db:
         condition: service_healthy
@@ -89,10 +92,11 @@ services:
   orders_web:
     build: ./orders-service
     container_name: orders_service
+    hostname: orders-web
     restart: always
-    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8002"
     ports:
-      - "8002:8000"
+      - "8002:8002"
     environment:
       POSTGRES_DB: order_db
       POSTGRES_USER: order_user
@@ -101,10 +105,30 @@ services:
       DB_PORT: 5432
       DJANGO_SECRET_KEY: order_secret_key_123
       DJANGO_DEBUG: "True"
-      ALLOWED_HOSTS: "localhost,127.0.0.1,0.0.0.0"
+      ALLOWED_HOSTS: "localhost,127.0.0.1,orders-web"
     depends_on:
       orders_db:
         condition: service_healthy
+
+  # ─── Frontend ────────────────────────────────────────────────────────
+  frontend:
+    build: ./frontend
+    container_name: zalandouille_frontend
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_CUSTOMER_URL: http://customers-web:8000
+      VITE_ORDER_URL: http://orders-web:8002
+      VITE_CATALOG_URL: http://catalog-web:8001
+
+    volumes:
+      - ./frontend/src:/app/src
+    depends_on:
+      - customers_web
+      - catalog_web
+      - orders_web
+
 
 volumes:
   catalog_postgres_data:

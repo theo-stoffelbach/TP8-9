@@ -11,6 +11,7 @@ async function request(url, options = {}) {
 }
 
 export const api = {
+  // Customers
   getCustomers: (email) =>
     request(`/api/customers/${email ? `?email=${encodeURIComponent(email)}` : ""}`),
   getCustomer: (id) => request(`/api/customers/${id}/`),
@@ -23,4 +24,20 @@ export const api = {
     request(`/api/customers/${customerId}/addresses/`, { method: "POST", body: JSON.stringify(data) }),
   updateAddress: (customerId, addressId, data) =>
     request(`/api/customers/${customerId}/addresses/${addressId}/`, { method: "PATCH", body: JSON.stringify(data) }),
+
+  // Catalog
+  getCategories: () => request("/api/categories/"),
+  getProducts: ({ search = "", categoryId = "", activeOnly = true } = {}) => {
+    const params = new URLSearchParams();
+    if (search) params.set("search", search);
+    if (categoryId) params.set("category", categoryId);
+    if (activeOnly) params.set("is_active", "true");
+    const qs = params.toString();
+    return request(`/api/products/${qs ? `?${qs}` : ""}`);
+  },
+
+  // Orders
+  getOrders: () => request("/api/orders/"),
+  createOrder: (data) =>
+    request("/api/orders/", { method: "POST", body: JSON.stringify(data) }),
 };
