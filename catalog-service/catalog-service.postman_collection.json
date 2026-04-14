@@ -1,0 +1,124 @@
+{
+  "info": {
+    "name": "catalog-service",
+    "description": "Collection Postman pour le microservice catalog-service — Mini Zalando",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8001",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Catégories",
+      "item": [
+        {
+          "name": "GET toutes les catégories",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/categories/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "categories", ""]
+            }
+          }
+        },
+        {
+          "name": "GET détail catégorie (id=1)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/categories/1/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "categories", "1", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Produits",
+      "item": [
+        {
+          "name": "GET tous les produits",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/products/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "products", ""]
+            }
+          }
+        },
+        {
+          "name": "GET détail produit (id=1)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/products/1/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "products", "1", ""]
+            }
+          }
+        },
+        {
+          "name": "GET produits — filtrer par catégorie",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/products/?category=1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "products", ""],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "1",
+                  "description": "ID de la catégorie (1=Sneakers, 2=Vestes, 3=Accessoires)"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET produits — recherche par nom",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/products/?search=nike",
+              "host": ["{{base_url}}"],
+              "path": ["api", "products", ""],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "nike",
+                  "description": "Recherche par nom de produit"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET produits — actifs uniquement",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/products/?is_active=true",
+              "host": ["{{base_url}}"],
+              "path": ["api", "products", ""],
+              "query": [
+                {
+                  "key": "is_active",
+                  "value": "true",
+                  "description": "Filtre produits actifs"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
