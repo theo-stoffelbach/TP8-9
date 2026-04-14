@@ -1,0 +1,141 @@
+[
+  {
+    "model": "catalog.customer",
+    "pk": 1,
+    "fields": {
+      "first_name": "Sarah",
+      "last_name": "Benali",
+      "email": "sarah.benali@example.com",
+      "phone": "0600000001",
+      "is_active": true
+    }
+  },
+  {
+    "model": "catalog.customer",
+    "pk": 2,
+    "fields": {
+      "first_name": "Thomas",
+      "last_name": "Durand",
+      "email": "thomas.durand@example.com",
+      "phone": "0600000002",
+      "is_active": true
+    }
+  },
+  {
+    "model": "catalog.customer",
+    "pk": 3,
+    "fields": {
+      "first_name": "Léa",
+      "last_name": "Martin",
+      "email": "lea.martin@example.com",
+      "phone": "0600000003",
+      "is_active": true
+    }
+  },
+  {
+    "model": "catalog.customer",
+    "pk": 4,
+    "fields": {
+      "first_name": "Karim",
+      "last_name": "Oubella",
+      "email": "karim.oubella@example.com",
+      "phone": "0600000004",
+      "is_active": false
+    }
+  },
+  {
+    "model": "catalog.customer",
+    "pk": 5,
+    "fields": {
+      "first_name": "Emma",
+      "last_name": "Petit",
+      "email": "emma.petit@example.com",
+      "phone": "0600000005",
+      "is_active": true
+    }
+  },
+  {
+    "model": "catalog.address",
+    "pk": 1,
+    "fields": {
+      "customer": 1,
+      "street": "12 rue des Lilas",
+      "postal_code": "38000",
+      "city": "Grenoble",
+      "country": "France",
+      "is_default": true
+    }
+  },
+  {
+    "model": "catalog.address",
+    "pk": 2,
+    "fields": {
+      "customer": 1,
+      "street": "5 avenue Jean Jaurès",
+      "postal_code": "69007",
+      "city": "Lyon",
+      "country": "France",
+      "is_default": false
+    }
+  },
+  {
+    "model": "catalog.address",
+    "pk": 3,
+    "fields": {
+      "customer": 2,
+      "street": "8 boulevard Haussmann",
+      "postal_code": "75009",
+      "city": "Paris",
+      "country": "France",
+      "is_default": true
+    }
+  },
+  {
+    "model": "catalog.address",
+    "pk": 4,
+    "fields": {
+      "customer": 2,
+      "street": "3 rue de la Paix",
+      "postal_code": "06000",
+      "city": "Nice",
+      "country": "France",
+      "is_default": false
+    }
+  },
+  {
+    "model": "catalog.address",
+    "pk": 5,
+    "fields": {
+      "customer": 3,
+      "street": "22 rue du Faubourg Saint-Antoine",
+      "postal_code": "75012",
+      "city": "Paris",
+      "country": "France",
+      "is_default": true
+    }
+  },
+  {
+    "model": "catalog.address",
+    "pk": 6,
+    "fields": {
+      "customer": 4,
+      "street": "14 allée des Roses",
+      "postal_code": "33000",
+      "city": "Bordeaux",
+      "country": "France",
+      "is_default": true
+    }
+  },
+  {
+    "model": "catalog.address",
+    "pk": 7,
+    "fields": {
+      "customer": 5,
+      "street": "9 place du Capitole",
+      "postal_code": "31000",
+      "city": "Toulouse",
+      "country": "France",
+      "is_default": true
+    }
+  }
+]
