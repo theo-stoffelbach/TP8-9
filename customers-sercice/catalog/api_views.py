@@ -7,10 +7,17 @@ from .models import Address, Customer
 from .serializers import AddressSerializer, CustomerSerializer
 
 
+PAGE_SIZE = 20
+
+
 @extend_schema(
     methods=["GET"],
     summary="Lister les clients",
-    parameters=[OpenApiParameter(name="email", description="Filtrer par email (insensible à la casse)", required=False, type=str)],
+    parameters=[
+        OpenApiParameter(name="email", description="Filtrer par email (insensible à la casse)", required=False, type=str),
+        OpenApiParameter(name="page", description="Numéro de page (défaut: 1)", required=False, type=int),
+        OpenApiParameter(name="page_size", description=f"Taille de page (défaut: {PAGE_SIZE})", required=False, type=int),
+    ],
     responses={200: CustomerSerializer(many=True)},
 )
 @extend_schema(
@@ -26,8 +33,25 @@ def customer_list(request):
         queryset = Customer.objects.all()
         if email:
             queryset = queryset.filter(email__iexact=email)
-        serializer = CustomerSerializer(queryset, many=True)
-        return Response(serializer.data)
+
+        try:
+            page = max(1, int(request.query_params.get("page", 1)))
+            page_size = max(1, min(100, int(request.query_params.get("page_size", PAGE_SIZE))))
+        except (ValueError, TypeError):
+            page = 1
+            page_size = PAGE_SIZE
+
+        total = queryset.count()
+        start = (page - 1) * page_size
+        end = start + page_size
+        serializer = CustomerSerializer(queryset[start:end], many=True)
+        return Response({
+            "count": total,
+            "page": page,
+            "page_size": page_size,
+            "total_pages": max(1, -(-total // page_size)),  # ceil division
+            "results": serializer.data,
+        })
 
     serializer = CustomerSerializer(data=request.data)
     if serializer.is_valid():

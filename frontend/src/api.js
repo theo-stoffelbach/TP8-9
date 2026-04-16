@@ -12,8 +12,13 @@ async function request(url, options = {}) {
 
 export const api = {
   // Customers
-  getCustomers: (email) =>
-    request(`/api/customers/${email ? `?email=${encodeURIComponent(email)}` : ""}`),
+  getCustomers: ({ email = "", page = 1, pageSize = 20 } = {}) => {
+    const params = new URLSearchParams();
+    if (email) params.set("email", email);
+    params.set("page", page);
+    params.set("page_size", pageSize);
+    return request(`/api/customers/?${params.toString()}`);
+  },
   getCustomer: (id) => request(`/api/customers/${id}/`),
   getAddresses: (id) => request(`/api/customers/${id}/addresses/`),
   createCustomer: (data) =>

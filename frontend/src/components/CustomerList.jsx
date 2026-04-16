@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
 
+const PAGE_SIZE = 20;
+
 const s = {
   root: { display: "flex", flexDirection: "column", gap: 12 },
   toolbar: { display: "flex", gap: 10, alignItems: "center" },
@@ -51,6 +53,23 @@ const s = {
   }),
   empty: { color: "#999", textAlign: "center", padding: 48 },
   error: { color: "#dc2626", padding: 12, background: "#fef2f2", borderRadius: 8 },
+  pagination: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginTop: 4,
+  },
+  pageBtn: (disabled) => ({
+    padding: "7px 14px",
+    borderRadius: 8,
+    fontSize: "0.85rem",
+    background: disabled ? "#f0f0f0" : "#1a1a1a",
+    color: disabled ? "#aaa" : "#fff",
+    cursor: disabled ? "not-allowed" : "pointer",
+    border: "none",
+  }),
+  pageInfo: { fontSize: "0.85rem", color: "#555", minWidth: 100, textAlign: "center" },
 };
 
 export default function CustomerList({ onSelect }) {
@@ -59,12 +78,20 @@ export default function CustomerList({ onSelect }) {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
 
-  function load(email = "") {
+  function load(email = "", targetPage = 1) {
     setLoading(true);
     setError(null);
-    api.getCustomers(email)
-      .then(setCustomers)
+    api.getCustomers({ email, page: targetPage, pageSize: PAGE_SIZE })
+      .then((data) => {
+        setCustomers(data.results);
+        setTotal(data.count);
+        setTotalPages(data.total_pages);
+        setPage(targetPage);
+      })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }
@@ -74,13 +101,17 @@ export default function CustomerList({ onSelect }) {
   function handleSearch(e) {
     e.preventDefault();
     setQuery(search);
-    load(search);
+    load(search, 1);
   }
 
   function handleClear() {
     setSearch("");
     setQuery("");
-    load();
+    load("", 1);
+  }
+
+  function goTo(targetPage) {
+    load(query, targetPage);
   }
 
   return (
@@ -103,15 +134,39 @@ export default function CustomerList({ onSelect }) {
       ) : customers.length === 0 ? (
         <p style={s.empty}>Aucun client trouvé.</p>
       ) : (
-        customers.map((c) => (
-          <div key={c.id} style={s.card} onClick={() => onSelect(c.id)}>
-            <div>
-              <div style={s.name}>{c.first_name} {c.last_name}</div>
-              <div style={s.meta}>{c.email} · {c.phone}</div>
+        <>
+          {customers.map((c) => (
+            <div key={c.id} style={s.card} onClick={() => onSelect(c.id)}>
+              <div>
+                <div style={s.name}>{c.first_name} {c.last_name}</div>
+                <div style={s.meta}>{c.email} · {c.phone}</div>
+              </div>
+              <span style={s.badge(c.is_active)}>{c.is_active ? "Actif" : "Inactif"}</span>
             </div>
-            <span style={s.badge(c.is_active)}>{c.is_active ? "Actif" : "Inactif"}</span>
+          ))}
+
+          <div style={s.pagination}>
+            <button
+              style={s.pageBtn(page <= 1)}
+              disabled={page <= 1}
+              onClick={() => goTo(page - 1)}
+            >
+              ← Précédent
+            </button>
+            <span style={s.pageInfo}>
+              Page {page} / {totalPages}
+              <br />
+              <span style={{ fontSize: "0.75rem", color: "#999" }}>{total} client{total > 1 ? "s" : ""}</span>
+            </span>
+            <button
+              style={s.pageBtn(page >= totalPages)}
+              disabled={page >= totalPages}
+              onClick={() => goTo(page + 1)}
+            >
+              Suivant →
+            </button>
           </div>
-        ))
+        </>
       )}
     </div>
   );
