@@ -20,14 +20,10 @@ CREATE TABLE IF NOT EXISTS produits (
 
 CREATE TABLE IF NOT EXISTS commandes (
     id              SERIAL PRIMARY KEY,
-    commande_id     INTEGER NOT NULL UNIQUE,  -- id original dans orders_db
+    commande_id     INTEGER NOT NULL UNIQUE,
     customer_id     INTEGER NOT NULL,
     pays_id         INTEGER REFERENCES pays(id),
-    annee           SMALLINT NOT NULL,
-    mois            SMALLINT NOT NULL,
-    jour            SMALLINT NOT NULL,
-    heure           SMALLINT NOT NULL,
-    minute          SMALLINT NOT NULL,
+    date            TIMESTAMP NOT NULL,
     montant_total   NUMERIC(10, 2)
 );
 
