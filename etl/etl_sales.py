@@ -25,21 +25,21 @@ log = logging.getLogger(__name__)
 
 CATALOG_DB = {
     "host": "localhost",
-    "port": 5432,
+    "port": 5431,
     "dbname": "catalog_db",
     "user": "catalog_user",
     "password": "catalog_pass",
 }
 CUSTOMERS_DB = {
     "host": "localhost",
-    "port": 5432,
+    "port": 5435,
     "dbname": "customer_db",
     "user": "customer_user",
     "password": "customer_password",
 }
 ORDERS_DB = {
     "host": "localhost",
-    "port": 5432,
+    "port": 5433,
     "dbname": "order_db",
     "user": "order_user",
     "password": "order_pass",

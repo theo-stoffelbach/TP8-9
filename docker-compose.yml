@@ -9,6 +9,8 @@ services:
       POSTGRES_DB: catalog_db
       POSTGRES_USER: catalog_user
       POSTGRES_PASSWORD: catalog_pass
+    ports:
+      - "5431:5432"
     volumes:
       - catalog_postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -43,6 +45,8 @@ services:
       POSTGRES_DB: customer_db
       POSTGRES_USER: customer_user
       POSTGRES_PASSWORD: customer_password
+    ports:
+      - "5435:5432"
     volumes:
       - customers_postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -81,6 +85,8 @@ services:
       POSTGRES_DB: order_db
       POSTGRES_USER: order_user
       POSTGRES_PASSWORD: order_pass
+    ports:
+      - "5433:5432"
     volumes:
       - orders_postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -148,27 +154,11 @@ services:
       - orders_db
       - bi_db
 
-  # ─── Analytics DB ────────────────────────────────────────────────────
-  analytics_db:
-    image: postgres:15-alpine
-    container_name: analytics_db
-    restart: always
-    environment:
-      POSTGRES_DB: analytics_db
-      POSTGRES_USER: analytics_user
-      POSTGRES_PASSWORD: analytics_pass
-    volumes:
-      - analytics_postgres_data:/var/lib/postgresql/data
-      - ./analytics/init.sql:/docker-entrypoint-initdb.d/init.sql
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U analytics_user -d analytics_db"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
   # ─── Superset ────────────────────────────────────────────────────────
   superset:
-    image: apache/superset:latest
+    build:
+      context: ./analytics
+      dockerfile: Dockerfile.superset
     container_name: superset
     restart: unless-stopped
     ports:
@@ -185,7 +175,7 @@ services:
       - ./analytics/superset-init.sh:/superset-init.sh
     command: ["/bin/bash", "/superset-init.sh"]
     depends_on:
-      analytics_db:
+      bi_db:
         condition: service_healthy
 
   # ─── Frontend ────────────────────────────────────────────────────────
@@ -199,7 +189,6 @@ services:
       VITE_CUSTOMER_URL: http://customers-web:8000
       VITE_ORDER_URL: http://orders-web:8002
       VITE_CATALOG_URL: http://catalog-web:8001
-
     volumes:
       - ./frontend/src:/app/src
     depends_on:
@@ -214,5 +203,4 @@ volumes:
   orders_postgres_data:
   bi_postgres_data:
   pgadmin_data:
-  analytics_postgres_data:
   superset_data:
