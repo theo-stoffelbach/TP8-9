@@ -141,3 +141,5 @@ GitHub.sublime-settings
 
 .claude/
 .env
+
+node_modules

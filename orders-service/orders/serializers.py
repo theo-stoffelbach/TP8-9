@@ -4,7 +4,7 @@ from rest_framework import serializers
 from .models import Order, OrderLine
 
 
-def fetch_product(product_id):
+def fetch_product(product_id, raise_on_error=True):
     """Récupère un produit depuis le catalog-service."""
     catalog_url = getattr(settings, 'CATALOG_SERVICE_URL', 'http://localhost:8001')
     try:
@@ -12,9 +12,11 @@ def fetch_product(product_id):
         response.raise_for_status()
         return response.json()
     except requests.RequestException as e:
-        raise serializers.ValidationError(
-            f"Impossible de récupérer le produit {product_id} depuis le catalog-service : {e}"
-        )
+        if raise_on_error:
+            raise serializers.ValidationError(
+                f"Impossible de récupérer le produit {product_id} depuis le catalog-service : {e}"
+            )
+        return None
 
 
 class OrderLineSerializer(serializers.ModelSerializer):
@@ -30,6 +32,17 @@ class OrderLineSerializer(serializers.ModelSerializer):
         if value <= 0:
             raise serializers.ValidationError("La quantité doit être supérieure à 0.")
         return value
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if data.get('product_name') == 'Unknown Product':
+            product = fetch_product(instance.product_id, raise_on_error=False)
+            if product:
+                data['product_name'] = product['name']
+                instance.product_name = product['name']
+                instance.unit_price = float(product['price'])
+                instance.save(update_fields=['product_name', 'unit_price'])
+        return data
 
 
 class OrderSerializer(serializers.ModelSerializer):
