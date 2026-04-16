@@ -111,6 +111,25 @@ services:
       orders_db:
         condition: service_healthy
 
+  # ─── BI Database ──────────────────────────────────────────────────────
+  bi_db:
+    image: postgres:15-alpine
+    container_name: bi_db
+    restart: always
+    environment:
+      POSTGRES_DB: bi_db
+      POSTGRES_USER: bi_user
+      POSTGRES_PASSWORD: bi_pass
+    ports:
+      - "5434:5432"
+    volumes:
+      - bi_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bi_user -d bi_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   # ─── pgAdmin ─────────────────────────────────────────────────────────
   pgadmin:
     image: dpage/pgadmin4:latest
@@ -127,6 +146,7 @@ services:
       - catalog_db
       - customers_db
       - orders_db
+      - bi_db
 
   # ─── Analytics DB ────────────────────────────────────────────────────
   analytics_db:
@@ -192,6 +212,7 @@ volumes:
   catalog_postgres_data:
   customers_postgres_data:
   orders_postgres_data:
+  bi_postgres_data:
   pgadmin_data:
   analytics_postgres_data:
   superset_data:
