@@ -24,23 +24,35 @@ log = logging.getLogger(__name__)
 # ─── Connexions sources ────────────────────────────────────────────────────────
 
 CATALOG_DB = {
-    "host": "localhost", "port": 5432,
-    "dbname": "catalog_db", "user": "catalog_user", "password": "catalog_pass",
+    "host": "localhost",
+    "port": 5432,
+    "dbname": "catalog_db",
+    "user": "catalog_user",
+    "password": "catalog_pass",
 }
 CUSTOMERS_DB = {
-    "host": "localhost", "port": 5432,
-    "dbname": "customer_db", "user": "customer_user", "password": "customer_password",
+    "host": "localhost",
+    "port": 5432,
+    "dbname": "customer_db",
+    "user": "customer_user",
+    "password": "customer_password",
 }
 ORDERS_DB = {
-    "host": "localhost", "port": 5432,
-    "dbname": "order_db", "user": "order_user", "password": "order_pass",
+    "host": "localhost",
+    "port": 5432,
+    "dbname": "order_db",
+    "user": "order_user",
+    "password": "order_pass",
 }
 
 # ─── Connexion destination BI ─────────────────────────────────────────────────
 
 BI_DB = {
-    "host": "localhost", "port": 5434,
-    "dbname": "bi_db", "user": "bi_user", "password": "bi_pass",
+    "host": "localhost",
+    "port": 5434,
+    "dbname": "bi_db",
+    "user": "bi_user",
+    "password": "bi_pass",
 }
 
 # ─── DDL ──────────────────────────────────────────────────────────────────────
@@ -111,13 +123,25 @@ CREATE TABLE IF NOT EXISTS fact_sales (
 # ─── HELPERS ──────────────────────────────────────────────────────────────────
 
 MONTH_NAMES = [
-    "", "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
-    "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre",
+    "",
+    "Janvier",
+    "Février",
+    "Mars",
+    "Avril",
+    "Mai",
+    "Juin",
+    "Juillet",
+    "Août",
+    "Septembre",
+    "Octobre",
+    "Novembre",
+    "Décembre",
 ]
 DAY_NAMES = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"]
 
 
 # ─── LOAD DIMENSIONS ──────────────────────────────────────────────────────────
+
 
 def load_dim_date(conn, start: date, end: date) -> None:
     """Génère une ligne par jour entre start et end."""
@@ -125,21 +149,23 @@ def load_dim_date(conn, start: date, end: date) -> None:
     current = start
     while current <= end:
         last_day = calendar.monthrange(current.year, current.month)[1]
-        rows.append((
-            int(current.strftime("%Y%m%d")),
-            current,
-            current.year,
-            (current.month - 1) // 3 + 1,
-            current.month,
-            MONTH_NAMES[current.month],
-            current.isocalendar()[1],
-            current.day,
-            current.isoweekday(),
-            DAY_NAMES[current.weekday()],
-            current.isoweekday() >= 6,
-            current.day == 1,
-            current.day == last_day,
-        ))
+        rows.append(
+            (
+                int(current.strftime("%Y%m%d")),
+                current,
+                current.year,
+                (current.month - 1) // 3 + 1,
+                current.month,
+                MONTH_NAMES[current.month],
+                current.isocalendar()[1],
+                current.day,
+                current.isoweekday(),
+                DAY_NAMES[current.weekday()],
+                current.isoweekday() >= 6,
+                current.day == 1,
+                current.day == last_day,
+            )
+        )
         current += timedelta(days=1)
 
     sql = """
@@ -176,7 +202,9 @@ def load_dim_pays(conn, customers_conn) -> dict[tuple, int]:
         ON CONFLICT (city, country) DO NOTHING
     """
     with conn.cursor() as cur:
-        psycopg2.extras.execute_values(cur, sql, [(r["city"], r["country"]) for r in pairs])
+        psycopg2.extras.execute_values(
+            cur, sql, [(r["city"], r["country"]) for r in pairs]
+        )
     conn.commit()
 
     # Récupère tous les pays_id pour mapping
@@ -202,7 +230,9 @@ def load_dim_categorie(conn, catalog_conn) -> None:
             slug = EXCLUDED.slug
     """
     with conn.cursor() as cur:
-        psycopg2.extras.execute_values(cur, sql, [(r["id"], r["name"], r["slug"]) for r in rows])
+        psycopg2.extras.execute_values(
+            cur, sql, [(r["id"], r["name"], r["slug"]) for r in rows]
+        )
     conn.commit()
     log.info(f"  [dim_categorie] {len(rows)} catégories chargées")
 
@@ -227,13 +257,16 @@ def load_dim_produit(conn, catalog_conn) -> None:
     """
     with conn.cursor() as cur:
         psycopg2.extras.execute_values(
-            cur, sql, [(r["id"], r["name"], float(r["price"]), r["category_id"]) for r in rows]
+            cur,
+            sql,
+            [(r["id"], r["name"], float(r["price"]), r["category_id"]) for r in rows],
         )
     conn.commit()
     log.info(f"  [dim_produit] {len(rows)} produits chargés")
 
 
 # ─── EXTRACT ──────────────────────────────────────────────────────────────────
+
 
 def extract_orders(orders_conn) -> list[dict]:
     with orders_conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
@@ -280,11 +313,14 @@ def extract_customers(customers_conn) -> dict[int, dict]:
 
 def extract_main_product(product_ids: list, catalog_products: dict) -> dict | None:
     """Retourne le produit le plus cher parmi les lignes d'une commande."""
-    prods = [catalog_products[pid] for pid in (product_ids or []) if pid in catalog_products]
+    prods = [
+        catalog_products[pid] for pid in (product_ids or []) if pid in catalog_products
+    ]
     return max(prods, key=lambda p: p["price"]) if prods else None
 
 
 # ─── TRANSFORM + LOAD FACT ────────────────────────────────────────────────────
+
 
 def load_fact_sales(
     bi_conn,
@@ -324,33 +360,41 @@ def load_fact_sales(
                 continue
 
             order_date = order["created_at"]
-            date_id    = int(order_date.strftime("%Y%m%d")) if order_date else None
-            pays_id    = pays_mapping.get((customer["city"], customer["country"]))
-            main_prod  = extract_main_product(order["product_ids"], catalog_products)
+            date_id = int(order_date.strftime("%Y%m%d")) if order_date else None
+            pays_id = pays_mapping.get((customer["city"], customer["country"]))
+            main_prod = extract_main_product(order["product_ids"], catalog_products)
 
-            cur.execute("SELECT 1 FROM fact_sales WHERE order_id = %s", (order["order_id"],))
+            cur.execute(
+                "SELECT 1 FROM fact_sales WHERE order_id = %s", (order["order_id"],)
+            )
             exists = cur.fetchone() is not None
 
-            cur.execute(upsert_sql, {
-                "order_id":      order["order_id"],
-                "order_status":  order["status"],
-                "order_total":   float(order["total_amount"]),
-                "nb_order_lines": order["nb_lines"] or 0,
-                "date_id":       date_id,
-                "pays_id":       pays_id,
-                "produit_id":    main_prod["id"]          if main_prod else None,
-                "categorie_id":  main_prod["category_id"] if main_prod else None,
-                "customer_id":   order["customer_id"],
-            })
+            cur.execute(
+                upsert_sql,
+                {
+                    "order_id": order["order_id"],
+                    "order_status": order["status"],
+                    "order_total": float(order["total_amount"]),
+                    "nb_order_lines": order["nb_lines"] or 0,
+                    "date_id": date_id,
+                    "pays_id": pays_id,
+                    "produit_id": main_prod["id"] if main_prod else None,
+                    "categorie_id": main_prod["category_id"] if main_prod else None,
+                    "customer_id": order["customer_id"],
+                },
+            )
             updated += exists
             inserted += not exists
 
     bi_conn.commit()
-    log.info(f"  [fact_sales] {inserted} insérées, {updated} mises à jour, {skipped} ignorées")
+    log.info(
+        f"  [fact_sales] {inserted} insérées, {updated} mises à jour, {skipped} ignorées"
+    )
     return inserted, updated
 
 
 # ─── PIPELINE PRINCIPAL ────────────────────────────────────────────────────────
+
 
 def run_etl() -> None:
     start = datetime.now()
@@ -359,10 +403,10 @@ def run_etl() -> None:
     log.info("=" * 60)
 
     # Ouvre les connexions sources
-    conn_orders    = psycopg2.connect(**ORDERS_DB)
+    conn_orders = psycopg2.connect(**ORDERS_DB)
     conn_customers = psycopg2.connect(**CUSTOMERS_DB)
-    conn_catalog   = psycopg2.connect(**CATALOG_DB)
-    conn_bi        = psycopg2.connect(**BI_DB)
+    conn_catalog = psycopg2.connect(**CATALOG_DB)
+    conn_bi = psycopg2.connect(**BI_DB)
 
     try:
         # Initialise le schéma BI
@@ -384,7 +428,9 @@ def run_etl() -> None:
         customers = extract_customers(conn_customers)
 
         with conn_catalog.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
-            cur.execute("SELECT id, name, price, category_id FROM catalog_product WHERE is_active = TRUE")
+            cur.execute(
+                "SELECT id, name, price, category_id FROM catalog_product WHERE is_active = TRUE"
+            )
             catalog_products = {r["id"]: dict(r) for r in cur.fetchall()}
         log.info(f"  [catalog] {len(catalog_products)} produits extraits")
 
