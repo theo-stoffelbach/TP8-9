@@ -98,6 +98,21 @@ pip install -r requirements.txt
 python etl_sales.py
 ```
 
+### Créer les vues pour Superset
+
+Après avoir lancé l'ETL, exécute ce script SQL dans la base `bi_db` (via pgAdmin ou `psql`) :
+
+```bash
+psql -h localhost -p 5434 -U bi_user -d bi_db -f analytics/bi_views.sql
+# password: bi_pass
+```
+
+Cela crée des vues prêtes à l'emploi pour Superset :
+- `vw_fact_sales_complete` — toutes les données jointes (faits + dimensions)
+- `vw_sales_by_country` — ventes agrégées par pays
+- `vw_sales_by_month` — ventes agrégées par mois
+- `vw_sales_by_category` — ventes agrégées par catégorie
+
 ---
 
 ## 🌐 URLs et accès
