@@ -173,7 +173,9 @@ services:
 
   # ─── Superset ────────────────────────────────────────────────────────
   superset:
-    image: apache/superset:latest
+    build:
+      context: ./analytics
+      dockerfile: Dockerfile.superset
     container_name: superset
     restart: unless-stopped
     ports:

@@ -8,6 +8,7 @@ Grain de fact_order_lines : 1 ligne = 1 ligne de commande
 """
 
 import calendar
+import os
 import psycopg2
 import psycopg2.extras
 from datetime import datetime, date, timedelta
@@ -26,25 +27,25 @@ log = logging.getLogger(__name__)
 # ═══════════════════════════════════════════════════════════════════════════════
 
 CATALOG_DB = {
-    "host": "localhost",
-    "port": 5431,
-    "dbname": "catalog_db",
-    "user": "catalog_user",
-    "password": "catalog_pass",
+    "host": os.getenv("CATALOG_DB_HOST", "localhost"),
+    "port": int(os.getenv("CATALOG_DB_PORT", 5431)),
+    "dbname": os.getenv("CATALOG_DB_NAME", "catalog_db"),
+    "user": os.getenv("CATALOG_DB_USER", "catalog_user"),
+    "password": os.getenv("CATALOG_DB_PASSWORD", "catalog_pass"),
 }
 CUSTOMERS_DB = {
-    "host": "localhost",
-    "port": 5435,
-    "dbname": "customer_db",
-    "user": "customer_user",
-    "password": "customer_password",
+    "host": os.getenv("CUSTOMERS_DB_HOST", "localhost"),
+    "port": int(os.getenv("CUSTOMERS_DB_PORT", 5435)),
+    "dbname": os.getenv("CUSTOMERS_DB_NAME", "customer_db"),
+    "user": os.getenv("CUSTOMERS_DB_USER", "customer_user"),
+    "password": os.getenv("CUSTOMERS_DB_PASSWORD", "customer_password"),
 }
 ORDERS_DB = {
-    "host": "localhost",
-    "port": 5433,
-    "dbname": "order_db",
-    "user": "order_user",
-    "password": "order_pass",
+    "host": os.getenv("ORDERS_DB_HOST", "localhost"),
+    "port": int(os.getenv("ORDERS_DB_PORT", 5433)),
+    "dbname": os.getenv("ORDERS_DB_NAME", "order_db"),
+    "user": os.getenv("ORDERS_DB_USER", "order_user"),
+    "password": os.getenv("ORDERS_DB_PASSWORD", "order_pass"),
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -52,11 +53,11 @@ ORDERS_DB = {
 # ═══════════════════════════════════════════════════════════════════════════════
 
 BI_DB = {
-    "host": "localhost",
-    "port": 5434,
-    "dbname": "bi_db",
-    "user": "bi_user",
-    "password": "bi_pass",
+    "host": os.getenv("BI_DB_HOST", "localhost"),
+    "port": int(os.getenv("BI_DB_PORT", 5434)),
+    "dbname": os.getenv("BI_DB_NAME", "bi_db"),
+    "user": os.getenv("BI_DB_USER", "bi_user"),
+    "password": os.getenv("BI_DB_PASSWORD", "bi_pass"),
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -221,11 +222,21 @@ def load_dim_customer(conn, customers_conn) -> None:
     """
     with conn.cursor() as cur:
         psycopg2.extras.execute_values(
-            cur, sql,
-            [(
-                r["id"], r["first_name"], r["last_name"], r["email"],
-                r["phone"], r["is_active"], r["country"], r["city"]
-            ) for r in rows]
+            cur,
+            sql,
+            [
+                (
+                    r["id"],
+                    r["first_name"],
+                    r["last_name"],
+                    r["email"],
+                    r["phone"],
+                    r["is_active"],
+                    r["country"],
+                    r["city"],
+                )
+                for r in rows
+            ],
         )
     conn.commit()
     log.info(f"  [dim_customer] {len(rows)} clients chargés")
@@ -282,8 +293,19 @@ def load_dim_product(conn, catalog_conn) -> None:
     """
     with conn.cursor() as cur:
         psycopg2.extras.execute_values(
-            cur, sql,
-            [(r["id"], r["name"], r["slug"], r["category_id"], r["category_name"], r["is_active"]) for r in rows]
+            cur,
+            sql,
+            [
+                (
+                    r["id"],
+                    r["name"],
+                    r["slug"],
+                    r["category_id"],
+                    r["category_name"],
+                    r["is_active"],
+                )
+                for r in rows
+            ],
         )
     conn.commit()
     log.info(f"  [dim_product] {len(rows)} produits chargés")
@@ -411,7 +433,7 @@ def load_fact_order_lines(
 
             cur.execute(
                 "SELECT 1 FROM fact_order_lines WHERE order_line_id = %s",
-                (line["order_line_id"],)
+                (line["order_line_id"],),
             )
             exists = cur.fetchone() is not None
 
