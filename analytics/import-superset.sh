@@ -18,6 +18,6 @@ echo "Import des dashboards Superset depuis $ZIP_FILE..."
 docker cp "$ZIP_FILE" superset:/tmp/superset_export.zip
 
 # Importe tout
-docker exec superset superset import-dashboards -p /tmp/superset_export.zip
+MSYS_NO_PATHCONV=1 docker exec superset superset import-dashboards -p /tmp/superset_export.zip -u admin
 
 echo "Import terminé ! Rafraîchis Superset (http://localhost:8088)"

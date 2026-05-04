@@ -7,7 +7,7 @@ set -e
 echo "Export des dashboards Superset..."
 
 # Exporte tout (dashboards, charts, datasets) dans un ZIP
-docker exec superset superset export-dashboards -p /tmp/superset_export.zip
+MSYS_NO_PATHCONV=1 docker exec superset superset export-dashboards -f /tmp/superset_export.zip
 
 # Copie le ZIP hors du conteneur
 docker cp superset:/tmp/superset_export.zip analytics/superset_export.zip
