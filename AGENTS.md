@@ -27,6 +27,17 @@ Projet étudiant d'architecture logicielle (TP8-9). Application e-commerce "Zala
 # Lancer l'ensemble de la stack
 docker-compose up --build -d
 
+# Migrer orders-service (ajout du champ quantity)
+docker exec orders_service python manage.py migrate
+
+# Lancer l'ETL
+cd etl
+python etl_sales.py
+
+# Créer les vues Superset
+docker cp analytics/bi_views.sql bi_db:/tmp/bi_views.sql
+docker exec bi_db psql -U bi_user -d bi_db -f /tmp/bi_views.sql
+
 # URLs utiles
 # - Frontend : http://localhost:5173
 # - API Catalog : http://localhost:8001/api/
@@ -52,7 +63,7 @@ docker-compose up --build -d
 - **Bases de données**: 
   - Catalog: tables `catalog_category`, `catalog_product`
   - Customers: tables `catalog_customer`, `catalog_address` (legacy naming)
-  - Orders: tables `orders_order`, `orders_orderline`
+  - Orders: tables `orders_order`, `orders_orderline` (avec `quantity` depuis migration 0003)
 
 ### React (Frontend)
 - **Style inline uniquement** : pas de CSS modules ni de styled-components. Tous les styles sont des objets JS dans les composants.
@@ -61,9 +72,11 @@ docker-compose up --build -d
 - **Conventions de nommage**: PascalCase pour les composants, camelCase pour les variables/fonctions.
 
 ### ETL (`etl/etl_sales.py`)
-- Schéma en **étoile** : `dim_date`, `dim_pays`, `dim_categorie`, `dim_produit`, `fact_sales`.
+- Schéma en **étoile** : `dim_date`, `dim_customer`, `dim_category`, `dim_product`, `fact_order_lines`.
+- **Grain** : `fact_order_lines` = 1 ligne par ligne de commande (pas 1 ligne par commande).
 - Connexions directes en psycopg2 vers les 4 PostgreSQL (hors Docker, ports exposés).
 - Le script est idempotent (upsert via `ON CONFLICT`).
+- `dim_product` contient `category_name` dénormalisé.
 
 ---
 
@@ -80,17 +93,41 @@ docker-compose up --build -d
 Dimensions et table de faits alimentées par `etl/etl_sales.py` :
 
 ```
-dim_date       (date_id PK YYYYMMDD)
-dim_pays       (pays_id, city, country)
-dim_categorie  (categorie_id PK, name, slug)
-dim_produit    (produit_id PK, name, price, categorie_id)
-fact_sales     (order_id, date_id, pays_id, produit_id, categorie_id, customer_id, ...)
+dim_date         (date_id PK YYYYMMDD, year, quarter, month, month_name, day, day_name)
+dim_customer     (customer_id PK, first_name, last_name, email, phone, is_active, country, city)
+dim_category     (category_id PK, category_name, category_slug)
+dim_product      (product_id PK, product_name, slug, category_id, category_name, is_active)
+fact_order_lines (order_line_id PK, order_id, customer_id, product_id, category_id, date_id,
+                  country, quantity, unit_price, line_total, order_status)
 ```
+
+**Vues pour Superset** (`analytics/bi_views.sql`) :
+- `vw_fact_order_lines_complete` — faits + dimensions jointes
+- `vw_sales_by_country` — agrégation par pays
+- `vw_sales_by_month` — agrégation par mois
+- `vw_sales_by_category` — agrégation par catégorie
+- `vw_sales_by_customer` — agrégation par client
+- `vw_top_products` — top produits
 
 Pour lancer l'ETL (hors conteneur, Python local avec `psycopg2`) :
 ```bash
 cd etl
 python etl_sales.py
+```
+
+---
+
+## Superset — Export / Import
+
+**Exporter les dashboards** (depuis la machine qui a les charts) :
+```bash
+bash analytics/export-superset.sh
+```
+Puis committer `analytics/superset_export.zip`.
+
+**Importer les dashboards** (pour les collègues) :
+```bash
+bash analytics/import-superset.sh
 ```
 
 ---
@@ -104,6 +141,7 @@ python etl_sales.py
    - Catalog utilise un `entrypoint.sh` personnalisé.
    - Customers et Orders utilisent `python manage.py runserver` en CMD (dev uniquement).
 5. **Imports JSON** : fichiers `catalog_import_10k.json` et `orders_import_20k.json` présents pour peupler les DB.
+6. **Migration orders-service 0003** : ajoute le champ `quantity` sur `OrderLine`, nécessaire pour le grain ligne de commande dans le DW.
 
 ---
 
