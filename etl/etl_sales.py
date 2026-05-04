@@ -392,77 +392,60 @@ def load_fact_order_lines(
     products: dict[int, dict],
 ) -> tuple[int, int]:
 
-    upsert_sql = """
+    # Vide la table pour faire un insert bulk rapide
+    with bi_conn.cursor() as cur:
+        cur.execute("TRUNCATE TABLE fact_order_lines;")
+    bi_conn.commit()
+
+    rows = []
+    skipped = 0
+
+    for line in order_lines:
+        customer = customers.get(line["customer_id"])
+        product = products.get(line["product_id"])
+
+        if not customer or not product:
+            skipped += 1
+            continue
+
+        order_date = line["created_at"]
+        date_id = int(order_date.strftime("%Y%m%d")) if order_date else None
+        unit_price = float(product["price"])
+        quantity = line["quantity"] or 1
+        line_total = unit_price * quantity
+
+        rows.append(
+            (
+                line["order_line_id"],
+                line["order_id"],
+                line["customer_id"],
+                line["product_id"],
+                product["category_id"],
+                date_id,
+                customer["country"],
+                quantity,
+                unit_price,
+                line_total,
+                line["order_status"],
+            )
+        )
+
+    insert_sql = """
         INSERT INTO fact_order_lines (
             order_line_id, order_id, customer_id, product_id, category_id,
             date_id, country, quantity, unit_price, line_total, order_status
-        ) VALUES (
-            %(order_line_id)s, %(order_id)s, %(customer_id)s, %(product_id)s,
-            %(category_id)s, %(date_id)s, %(country)s, %(quantity)s,
-            %(unit_price)s, %(line_total)s, %(order_status)s
-        )
-        ON CONFLICT (order_line_id) DO UPDATE SET
-            order_id     = EXCLUDED.order_id,
-            customer_id  = EXCLUDED.customer_id,
-            product_id   = EXCLUDED.product_id,
-            category_id  = EXCLUDED.category_id,
-            date_id      = EXCLUDED.date_id,
-            country      = EXCLUDED.country,
-            quantity     = EXCLUDED.quantity,
-            unit_price   = EXCLUDED.unit_price,
-            line_total   = EXCLUDED.line_total,
-            order_status = EXCLUDED.order_status
+        ) VALUES %s
     """
 
-    inserted = updated = skipped = 0
-
     with bi_conn.cursor() as cur:
-        for line in order_lines:
-            customer = customers.get(line["customer_id"])
-            product = products.get(line["product_id"])
-
-            if not customer or not product:
-                skipped += 1
-                continue
-
-            order_date = line["created_at"]
-            date_id = int(order_date.strftime("%Y%m%d")) if order_date else None
-            unit_price = float(product["price"])
-            quantity = line["quantity"] or 1
-            line_total = unit_price * quantity
-
-            cur.execute(
-                "SELECT 1 FROM fact_order_lines WHERE order_line_id = %s",
-                (line["order_line_id"],),
-            )
-            exists = cur.fetchone() is not None
-
-            cur.execute(
-                upsert_sql,
-                {
-                    "order_line_id": line["order_line_id"],
-                    "order_id": line["order_id"],
-                    "customer_id": line["customer_id"],
-                    "product_id": line["product_id"],
-                    "category_id": product["category_id"],
-                    "date_id": date_id,
-                    "country": customer["country"],
-                    "quantity": quantity,
-                    "unit_price": unit_price,
-                    "line_total": line_total,
-                    "order_status": line["order_status"],
-                },
-            )
-            if exists:
-                updated += 1
-            else:
-                inserted += 1
-
+        psycopg2.extras.execute_values(cur, insert_sql, rows, page_size=5000)
     bi_conn.commit()
+
+    inserted = len(rows)
     log.info(
-        f"  [fact_order_lines] {inserted} insérées, {updated} mises à jour, {skipped} ignorées"
+        f"  [fact_order_lines] {inserted} insérées, {skipped} ignorées"
     )
-    return inserted, updated
+    return inserted, skipped
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
