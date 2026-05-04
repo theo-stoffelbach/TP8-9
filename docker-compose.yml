@@ -190,6 +190,7 @@ services:
     volumes:
       - superset_data:/app/superset_home
       - ./analytics/superset-init.sh:/superset-init.sh
+      - ./analytics/superset_export.zip:/tmp/superset_export.zip:ro
     command: ["/bin/bash", "/superset-init.sh"]
     depends_on:
       analytics_db:
@@ -201,6 +202,8 @@ services:
     container_name: etl_worker
     # On attend 60s pour laisser le temps aux imports JSON de se terminer dans les autres services
     command: sh -c "echo 'Attente des imports...' && sleep 60 && python etl_sales.py"
+    volumes:
+      - ./analytics/bi_views.sql:/app/bi_views.sql:ro
     depends_on:
       catalog_web:
         condition: service_started

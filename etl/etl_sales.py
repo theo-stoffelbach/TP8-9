@@ -506,6 +506,18 @@ def run_etl() -> None:
         log.info("LOAD FAIT")
         load_fact_order_lines(conn_bi, order_lines, customers, products)
 
+        # ═══ Vues analytiques ═══
+        views_path = "/app/bi_views.sql"
+        if os.path.exists(views_path):
+            with open(views_path, "r", encoding="utf-8") as f:
+                views_sql = f.read()
+            with conn_bi.cursor() as cur:
+                cur.execute(views_sql)
+            conn_bi.commit()
+            log.info("  [bi] Vues analytiques créées/mises à jour")
+        else:
+            log.warning("  [bi] Fichier bi_views.sql non trouvé, vues ignorées")
+
     finally:
         conn_orders.close()
         conn_customers.close()
