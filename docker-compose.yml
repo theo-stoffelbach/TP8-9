@@ -60,7 +60,7 @@ services:
     container_name: customers_service
     hostname: customers-web
     restart: always
-    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    command: sh -c "python manage.py migrate && python manage.py shell -c 'from catalog.models import Customer; import sys; sys.exit(0 if Customer.objects.exists() else 1)' || python manage.py import_customers catalog_import_10k.json --skip-errors && python manage.py runserver 0.0.0.0:8000"
     ports:
       - "8000:8000"
     environment:
@@ -100,7 +100,7 @@ services:
     container_name: orders_service
     hostname: orders-web
     restart: always
-    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8002"
+    command: sh -c "python manage.py migrate && python manage.py shell -c 'from orders.models import Order; import sys; sys.exit(0 if Order.objects.exists() else 1)' || python manage.py import_orders orders_import_20k.json --skip-errors && python manage.py runserver 0.0.0.0:8002"
     ports:
       - "8002:8002"
     environment:
@@ -154,11 +154,26 @@ services:
       - orders_db
       - bi_db
 
+  # ─── Analytics DB (for Superset metadata if needed, but bi_db is used here) ────────
+  analytics_db:
+    image: postgres:15-alpine
+    container_name: analytics_db
+    restart: always
+    environment:
+      POSTGRES_DB: analytics_db
+      POSTGRES_USER: analytics_user
+      POSTGRES_PASSWORD: analytics_pass
+    volumes:
+      - analytics_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U analytics_user -d analytics_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   # ─── Superset ────────────────────────────────────────────────────────
   superset:
-    build:
-      context: ./analytics
-      dockerfile: Dockerfile.superset
+    image: apache/superset:latest
     container_name: superset
     restart: unless-stopped
     ports:
@@ -175,8 +190,48 @@ services:
       - ./analytics/superset-init.sh:/superset-init.sh
     command: ["/bin/bash", "/superset-init.sh"]
     depends_on:
+      analytics_db:
+        condition: service_healthy
+
+  # ─── ETL Worker ──────────────────────────────────────────────────────
+  etl:
+    build: ./etl
+    container_name: etl_worker
+    # On attend 60s pour laisser le temps aux imports JSON de se terminer dans les autres services
+    command: sh -c "echo 'Attente des imports...' && sleep 60 && python etl_sales.py"
+    depends_on:
+      catalog_web:
+        condition: service_started
+      customers_web:
+        condition: service_started
+      orders_web:
+        condition: service_started
       bi_db:
         condition: service_healthy
+    environment:
+      CATALOG_DB_HOST: catalog_db
+      CATALOG_DB_PORT: 5432
+      CATALOG_DB_NAME: catalog_db
+      CATALOG_DB_USER: catalog_user
+      CATALOG_DB_PASSWORD: catalog_pass
+
+      CUSTOMERS_DB_HOST: customers_db
+      CUSTOMERS_DB_PORT: 5432
+      CUSTOMERS_DB_NAME: customer_db
+      CUSTOMERS_DB_USER: customer_user
+      CUSTOMERS_DB_PASSWORD: customer_password
+
+      ORDERS_DB_HOST: orders_db
+      ORDERS_DB_PORT: 5432
+      ORDERS_DB_NAME: order_db
+      ORDERS_DB_USER: order_user
+      ORDERS_DB_PASSWORD: order_pass
+
+      BI_DB_HOST: bi_db
+      BI_DB_PORT: 5432
+      BI_DB_NAME: bi_db
+      BI_DB_USER: bi_user
+      BI_DB_PASSWORD: bi_pass
 
   # ─── Frontend ────────────────────────────────────────────────────────
   frontend:
@@ -196,11 +251,11 @@ services:
       - catalog_web
       - orders_web
 
-
 volumes:
   catalog_postgres_data:
   customers_postgres_data:
   orders_postgres_data:
   bi_postgres_data:
   pgadmin_data:
+  analytics_postgres_data:
   superset_data:

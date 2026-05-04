@@ -24,6 +24,7 @@ class Order(models.Model):
 class OrderLine(models.Model):
     order = models.ForeignKey(Order, related_name="items", on_delete=models.CASCADE)
     product_id = models.IntegerField()
+    quantity = models.IntegerField(default=1)
 
     def __str__(self):
-        return f"Order #{self.order_id} - Product {self.product_id}"
+        return f"Order #{self.order_id} - Product {self.product_id} (x{self.quantity})"
