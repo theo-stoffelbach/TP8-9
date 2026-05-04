@@ -98,6 +98,21 @@ pip install -r requirements.txt
 python etl_sales.py
 ```
 
+### Créer les vues pour Superset
+
+Après avoir lancé l'ETL, exécute ce script SQL dans la base `bi_db` (via pgAdmin ou `psql`) :
+
+```bash
+psql -h localhost -p 5434 -U bi_user -d bi_db -f analytics/bi_views.sql
+# password: bi_pass
+```
+
+Cela crée des vues prêtes à l'emploi pour Superset :
+- `vw_fact_sales_complete` — toutes les données jointes (faits + dimensions)
+- `vw_sales_by_country` — ventes agrégées par pays
+- `vw_sales_by_month` — ventes agrégées par mois
+- `vw_sales_by_category` — ventes agrégées par catégorie
+
 ---
 
 ## 🌐 URLs et accès
@@ -110,6 +125,17 @@ python etl_sales.py
 | **API Orders** | http://localhost:8002/api/orders/ | — |
 | **pgAdmin** | http://localhost:5050 | `admin@admin.com` / `admin` |
 | **Superset** | http://localhost:8088 | `admin` / `admin` |
+
+### Identifiants des bases de données (PostgreSQL)
+
+Pour se connecter via **pgAdmin** ou en ligne de commande (`psql`) :
+
+| Base de données | Host | Port | Database | Utilisateur | Mot de passe |
+|-----------------|------|------|----------|-------------|--------------|
+| **Catalog DB** | `localhost` | `5431` | `catalog_db` | `catalog_user` | `catalog_pass` |
+| **Customers DB** | `localhost` | `5435` | `customer_db` | `customer_user` | `customer_password` |
+| **Orders DB** | `localhost` | `5433` | `order_db` | `order_user` | `order_pass` |
+| **BI DB** | `localhost` | `5434` | `bi_db` | `bi_user` | `bi_pass` |
 
 ---
 
