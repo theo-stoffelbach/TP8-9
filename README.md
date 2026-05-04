@@ -111,6 +111,17 @@ python etl_sales.py
 | **pgAdmin** | http://localhost:5050 | `admin@admin.com` / `admin` |
 | **Superset** | http://localhost:8088 | `admin` / `admin` |
 
+### Identifiants des bases de données (PostgreSQL)
+
+Pour se connecter via **pgAdmin** ou en ligne de commande (`psql`) :
+
+| Base de données | Host | Port | Database | Utilisateur | Mot de passe |
+|-----------------|------|------|----------|-------------|--------------|
+| **Catalog DB** | `localhost` | `5431` | `catalog_db` | `catalog_user` | `catalog_pass` |
+| **Customers DB** | `localhost` | `5435` | `customer_db` | `customer_user` | `customer_password` |
+| **Orders DB** | `localhost` | `5433` | `order_db` | `order_user` | `order_pass` |
+| **BI DB** | `localhost` | `5434` | `bi_db` | `bi_user` | `bi_pass` |
+
 ---
 
 ## 📡 Endpoints API
